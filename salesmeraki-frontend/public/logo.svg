@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="primary-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" /> <!-- Using primary color from tailwind config -->
+      <stop offset="100%" stop-color="#4F46E5" /> <!-- Using primary-dark from tailwind config -->
+    </linearGradient>
+    <linearGradient id="accent-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A855F7" /> <!-- Using secondary-purple from tailwind config -->
+      <stop offset="100%" stop-color="#EC4899" /> <!-- Using secondary-pink from tailwind config -->
+    </linearGradient>
+    
+    <!-- Filters -->
+    <filter id="subtle-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000000" flood-opacity="0.2" />
+    </filter>
+    
+    <!-- Clip Paths -->
+    <clipPath id="graph-clip">
+      <path d="M20,50 L60,25 L100,40 L140,10" />
+    </clipPath>
+  </defs>
+  
+  <!-- Logo Mark -->
+  <g transform="translate(150, 70)">
+    <!-- Main Shape - Simplified Abstract "M" for Meraki -->
+    <path d="M0,50 L40,0 L80,50 L120,0 L160,50" 
+          stroke="url(#primary-gradient)" 
+          stroke-width="12" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          fill="none" />
+    
+    <!-- Modern Graph Line - Smoother with animation -->
+    <path d="M20,50 L60,25 L100,40 L140,10" 
+          stroke="url(#accent-gradient)" 
+          stroke-width="6" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          fill="none">
+      <animate attributeName="stroke-dasharray" from="0,200" to="200,0" dur="2s" begin="0.5s" fill="freeze" />
+    </path>
+    
+    <!-- Modern Data Points -->
+    <rect x="58" y="23" width="4" height="4" fill="url(#accent-gradient)" transform="rotate(-45, 60, 25)" />
+    <rect x="98" y="38" width="4" height="4" fill="url(#accent-gradient)" transform="rotate(-45, 100, 40)" />
+    <rect x="138" y="8" width="4" height="4" fill="url(#accent-gradient)" transform="rotate(-45, 140, 10)" />
+    
+    <!-- Modern Node with Ring -->
+    <circle cx="100" cy="40" r="7" fill="#FFFFFF" stroke="url(#primary-gradient)" stroke-width="3" />
+    
+    <!-- Modern Pulse Effect - More subtle and clean -->
+    <circle cx="100" cy="40" r="7" fill="none" stroke="url(#primary-gradient)" stroke-width="1.5" opacity="0.4">
+      <animate attributeName="r" from="7" to="14" dur="2.5s" repeatCount="indefinite" />
+      <animate attributeName="opacity" from="0.4" to="0" dur="2.5s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="100" cy="40" r="7" fill="none" stroke="url(#primary-gradient)" stroke-width="0.75" opacity="0.25">
+      <animate attributeName="r" from="7" to="18" dur="2.5s" begin="0.5s" repeatCount="indefinite" />
+      <animate attributeName="opacity" from="0.25" to="0" dur="2.5s" begin="0.5s" repeatCount="indefinite" />
+    </circle>
+  </g>
+  
+  <!-- Company Name - Clean Modern Typography -->
+  <text x="250" y="150" font-family="Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#333333" filter="url(#subtle-shadow)">
+    Sales<tspan fill="url(#primary-gradient)">Meraki</tspan>
+  </text>
+  
+  <!-- Tagline with brand accent -->
+  <text x="250" y="175" font-family="Arial, sans-serif" font-size="12" font-weight="300" text-anchor="middle" fill="#666666">
+    AI-Powered Sales Enablement
+  </text>
+</svg>
