@@ -53,3 +53,4 @@ NEXT_PUBLIC_WS_URL=ws://localhost:5000
 AI_SERVICE_URL=http://localhost:5000/api/ai
 TRANSCRIPTION_SERVICE_URL=http://localhost:5000/api/transcription
 TRANSCRIPTION_API_KEY=your-transcription-api-key
+# CI/CD Test
