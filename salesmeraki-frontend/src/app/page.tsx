@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import TopNav from '@/components/layout/TopNav';
-import { 
+import { useCurrency } from '@/contexts/CurrencyContext';
+import {
   ChartBarSquareIcon,
   RocketLaunchIcon,
   ChatBubbleLeftRightIcon,
@@ -80,17 +81,18 @@ const testimonials = [
 const pricingPlans = [
   {
     name: "Starter",
-    price: "$29",
+    priceValue: 29,
     features: ["AI insights", "Basic analytics", "CRM integration", "Workflow automation"],
   },
   {
     name: "Pro",
-    price: "$79",
+    priceValue: 79,
     features: ["Everything in Starter", "Real-time coaching", "AI chatbots", "Advanced analytics"],
   },
   {
     name: "Enterprise",
-    price: "Custom",
+    priceValue: null,
+    priceLabel: "Custom",
     features: ["Everything in Pro", "Custom AI models", "Dedicated support", "API access"],
   },
 ];
@@ -220,6 +222,7 @@ interface ROICalculation {
 }
 
 export default function Home() {
+  const { formatAmount, convertAmount } = useCurrency();
   const { status } = useSession();
   const [roiData, setRoiData] = useState<ROICalculation>({
     teamSize: 0,
@@ -242,7 +245,7 @@ export default function Home() {
     const projectedImprovement = 0.32; // 32% improvement
     const annualRevenue = roiData.teamSize * (roiData.closeRate / 100) * roiData.dealSize * 12;
     const projectedRevenue = annualRevenue * (1 + projectedImprovement);
-    
+
     setCalculatedROI({
       revenueIncrease: projectedRevenue - annualRevenue,
       productivityGain: '32%',
@@ -253,9 +256,9 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background-light" role="main">
       <TopNav />
-      
+
       {/* Hero Section */}
-      <section 
+      <section
         aria-label="Hero"
         className="hero-container"
       >
@@ -268,13 +271,13 @@ export default function Home() {
             Transform your sales process with cutting-edge AI technology that helps you close more deals and grow faster.
           </p>
           <div className="flex gap-6 justify-center">
-            <Link 
-              href="/demo-request" 
+            <Link
+              href="/demo-request"
               className="btn-secondary-enhanced"
             >
               Schedule a Demo
             </Link>
-            <Link 
+            <Link
               href={status === "authenticated" ? "/dashboard" : "/auth/signup"}
               className="btn-primary-enhanced"
             >
@@ -287,7 +290,7 @@ export default function Home() {
       <div className="section-divider" role="separator" />
 
       {/* Features Section */}
-      <section 
+      <section
         aria-label="Features"
         className="section-spacing bg-white"
       >
@@ -298,7 +301,7 @@ export default function Home() {
           </p>
           <div className="features-grid">
             {features.map((feature, index) => (
-              <Link 
+              <Link
                 href={`/features/${feature.title.toLowerCase().replace(/\s+/g, '-')}`}
                 key={index}
                 className="feature-card hover:shadow-lg transition-shadow duration-300"
@@ -318,7 +321,7 @@ export default function Home() {
       <div className="section-divider" role="separator" />
 
       {/* Industry Use Cases */}
-      <section 
+      <section
         aria-label="Industry Use Cases"
         className="section-spacing bg-gray-50"
       >
@@ -330,11 +333,11 @@ export default function Home() {
           <p className="section-subtitle">
             Discover how SalesMeraki transforms sales across different industries
           </p>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
             {useCases.map((useCase, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 p-8"
               >
                 <div className="flex items-start space-x-4">
@@ -382,8 +385,8 @@ export default function Home() {
       </section>
 
       <div className="mt-8 text-center">
-        <Link 
-          href="/case-studies" 
+        <Link
+          href="/case-studies"
           className="btn-primary-enhanced"
         >
           View All Case Studies
@@ -400,7 +403,7 @@ export default function Home() {
             <h2 className="section-title">SalesMeraki vs. Other Platforms</h2>
             <p className="section-subtitle">See how we stack up against the competition</p>
           </div>
-          
+
           <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -431,8 +434,8 @@ export default function Home() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {comparisonFeatures.map((item, index) => (
-                    <tr 
-                      key={index} 
+                    <tr
+                      key={index}
                       className={`${
                         index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
                       } hover:bg-gray-50 transition-colors duration-150`}
@@ -488,7 +491,7 @@ export default function Home() {
               </table>
             </div>
           </div>
-          
+
           <div className="mt-8 text-center">
             <p className="text-lg font-medium text-primary">
               🚀 Get more features and better AI insights with SalesMeraki!
@@ -503,7 +506,7 @@ export default function Home() {
       </section>
 
       {/* FAQs Section */}
-      <section 
+      <section
         aria-label="FAQs"
         className="section-spacing bg-gray-50"
       >
@@ -513,12 +516,12 @@ export default function Home() {
             <h2 className="section-title">Frequently Asked Questions</h2>
             <p className="section-subtitle">Everything you need to know about SalesMeraki</p>
           </div>
-          
+
           <div className="max-w-3xl mx-auto">
             <div className="space-y-4">
               {faqs.map((faq, index) => (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
                   className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-6"
                 >
                   <div className="flex justify-between items-start">
@@ -534,7 +537,7 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section */}
-      <section 
+      <section
         aria-label="Testimonials"
         className="section-spacing bg-gray-50"
       >
@@ -542,7 +545,7 @@ export default function Home() {
           <h2 className="section-title">What Our Customers Say</h2>
           <div className="testimonials-grid">
             {testimonials.map((testimonial, index) => (
-              <figure 
+              <figure
                 key={index}
                 className="testimonial-card"
                 role="group"
@@ -679,7 +682,7 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section 
+      <section
         aria-label="Pricing"
         className="section-spacing bg-white"
       >
@@ -690,7 +693,7 @@ export default function Home() {
           </p>
           <div className="pricing-grid">
             {pricingPlans.map((plan, index) => (
-              <div 
+              <div
                 key={index}
                 className="pricing-card"
                 role="article"
@@ -700,13 +703,13 @@ export default function Home() {
                     {plan.name}
                   </h3>
                   <div className="text-4xl font-bold text-primary">
-                    {plan.price}
+                    {plan.priceValue ? formatAmount(plan.priceValue, true) : plan.priceLabel}
                     <span className="text-base text-gray-500">/month</span>
                   </div>
                 </div>
                 <ul className="space-y-4 mb-8" role="list">
                   {plan.features.map((feature, featureIndex) => (
-                    <li 
+                    <li
                       key={featureIndex}
                       className="flex items-center space-x-3"
                     >
@@ -715,7 +718,7 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <button 
+                <button
                   onClick={() => handlePricingClick(plan.name)}
                   className="btn-primary-enhanced w-full"
                 >
@@ -760,7 +763,7 @@ export default function Home() {
                     />
                   </div>
                 </div>
-                
+
                 {/* Close Rate Input */}
                 <div className="input-group">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -781,11 +784,11 @@ export default function Home() {
                     />
                   </div>
                 </div>
-                
+
                 {/* Deal Size Input */}
                 <div className="input-group">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Average Deal Size ($)
+                    Average Deal Size
                   </label>
                   <div className="relative rounded-md shadow-sm">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -802,7 +805,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Calculate Button */}
               <div className="text-center mb-8">
                 <button
@@ -814,7 +817,7 @@ export default function Home() {
                   Calculate ROI
                 </button>
               </div>
-              
+
               {/* Results Section */}
               {calculatedROI && (
                 <div className="bg-primary/5 rounded-xl p-6 border border-primary/10">
@@ -824,7 +827,7 @@ export default function Home() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 sm:p-6 text-center">
                       <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">
-                        ${calculatedROI.revenueIncrease.toLocaleString()}
+                        {formatAmount(calculatedROI.revenueIncrease, true)}
                       </div>
                       <p className="text-gray-600">Additional Annual Revenue</p>
                     </div>
@@ -858,7 +861,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section 
+      <section
         aria-label="Call to Action"
         className="section-spacing gradient-bg"
       >
@@ -870,13 +873,13 @@ export default function Home() {
             Join thousands of high-performing sales teams using our platform
           </p>
           <div className="flex justify-center gap-6">
-            <Link 
-              href="/demo-request" 
+            <Link
+              href="/demo-request"
               className="btn-white"
             >
               Schedule a Demo
             </Link>
-            <Link 
+            <Link
               href={status === "authenticated" ? "/dashboard" : "/auth/signup"}
               className="btn-primary-enhanced"
             >
@@ -890,7 +893,7 @@ export default function Home() {
       <section className="section-spacing bg-white">
         <div className="section-container">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Link 
+            <Link
               href="/support"
               className="resource-card"
             >
@@ -898,7 +901,7 @@ export default function Home() {
               <h3 className="text-xl font-semibold mb-2">Support Center</h3>
               <p className="text-gray-600">Get help from our expert support team</p>
             </Link>
-            <Link 
+            <Link
               href="/documentation"
               className="resource-card"
             >
@@ -906,7 +909,7 @@ export default function Home() {
               <h3 className="text-xl font-semibold mb-2">Documentation</h3>
               <p className="text-gray-600">Detailed guides and API references</p>
             </Link>
-            <Link 
+            <Link
               href="/blog"
               className="resource-card"
             >

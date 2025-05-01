@@ -3,14 +3,18 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
+  console.log("API: Workflow POST request received");
+  
   try {
+    const body = await request.json();
+    console.log("API: Workflow data received:", body);
+    
     const session = await getServerSession(authOptions);
     if (!session || !session.accessToken) {
       console.log('API route: No valid session found for POST workflow');
       return NextResponse.json({ error: 'Unauthorized - Please log in again' }, { status: 401 });
     }
 
-    const body = await request.json();
     console.log('API route: Creating new workflow', { workflowName: body.name });
 
     try {

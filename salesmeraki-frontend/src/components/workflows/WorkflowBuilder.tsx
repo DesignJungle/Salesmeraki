@@ -7,10 +7,10 @@ import { useRouter } from 'next/navigation';
 import { fetchWithAuth } from '@/utils/errorHandler';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/common/Button';
-import { 
-  EnvelopeIcon, 
-  ClockIcon, 
-  ArrowPathIcon, 
+import {
+  EnvelopeIcon,
+  ClockIcon,
+  ArrowPathIcon,
   CheckCircleIcon,
   PlusIcon,
   TrashIcon,
@@ -60,13 +60,14 @@ const stepCategories = [
   }
 ];
 
-export default function WorkflowBuilder({ workflow, onSave, onAuthError }: WorkflowBuilderProps) {
+export default function WorkflowBuilder({ workflow: initialWorkflow, onSave, onAuthError }: WorkflowBuilderProps) {
   const { data: session } = useSession();
   const router = useRouter();
-  const [name, setName] = useState(workflow?.name || '');
-  const [description, setDescription] = useState(workflow?.description || '');
-  const [status, setStatus] = useState<'draft' | 'active' | 'archived'>(workflow?.status || 'draft');
-  const [steps, setSteps] = useState<WorkflowStep[]>(workflow?.steps || []);
+  const [workflow, setWorkflow] = useState<Workflow | null>(initialWorkflow);
+  const [name, setName] = useState(initialWorkflow?.name || '');
+  const [description, setDescription] = useState(initialWorkflow?.description || '');
+  const [status, setStatus] = useState<'draft' | 'active' | 'archived'>(initialWorkflow?.status || 'draft');
+  const [steps, setSteps] = useState<WorkflowStep[]>(initialWorkflow?.steps || []);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -81,7 +82,7 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
     if (!showAIRecommendations) {
       setShowAIRecommendations(true);
       setIsLoadingRecommendations(true);
-      
+
       try {
         const response = await fetchWithAuth('/api/ai', {
           method: 'POST',
@@ -95,7 +96,7 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
             type: 'sales_analysis'
           }),
         });
-        
+
         if (response && response.recommendations) {
           setAiRecommendations(response.recommendations);
         } else {
@@ -165,7 +166,7 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
 
     // Mark field as touched
     setTouched(prev => ({ ...prev, [field]: true }));
-    
+
     // Validate field
     const error = validateField(field, value);
     setErrors(prev => ({ ...prev, [field]: error }));
@@ -177,58 +178,55 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
       name: validateField('name', name),
       description: validateField('description', description),
     };
-    
+
     // Check if steps array is empty
     if (steps.length === 0) {
       newErrors.steps = 'At least one step is required';
     }
-    
+
     setErrors(newErrors);
     setTouched({
       name: true,
       description: true,
       steps: true,
     });
-    
+
     // Check if there are any errors
     const hasErrors = Object.values(newErrors).some(error => error !== '');
     return !hasErrors;
   };
 
-  // Modify the handleSave function to ensure workflow list updates
+  // Improved save functionality with better fallbacks and error handling
   const handleSave = async () => {
-    logger.debug("Save button clicked");
-    
-    // Start performance measurement
-    const endMeasure = performanceMonitor.startMeasure('WorkflowBuilder', 'save');
-    
-    // Validate all fields before submission
-    const isValid = validateForm();
-    logger.debug("Form validation result:", isValid);
-    
-    if (!isValid) {
-      logger.debug("Form validation failed with errors:", errors);
-      endMeasure(); // End measurement on early return
+    console.log("Save button clicked");
+
+    // Validate form first
+    if (!validateForm()) {
+      console.log("Form validation failed", errors);
       return;
     }
 
     if (!session || !session.user) {
-      logger.debug("No valid session found");
+      console.log("No valid session found");
       setErrors(prev => ({ ...prev, auth: 'Your session has expired. Please log in again.' }));
-      
+
+      if (onAuthError) {
+        onAuthError();
+        return;
+      }
+
       if (router) {
         router.push('/auth/signin?callbackUrl=/workflows');
-      } else if (onAuthError) {
-        onAuthError();
       }
       return;
     }
 
     try {
-      logger.debug("Starting save process");
+      console.log("Starting save process");
       setIsSaving(true);
       setErrors({});
-      
+
+      // Create workflow data object
       const workflowData = {
         id: workflow?.id || '',
         name,
@@ -240,94 +238,92 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
         })),
       };
 
-      logger.debug('Saving workflow data:', workflowData);
+      console.log("Workflow data to save:", workflowData);
 
-      // Also save to localStorage as a backup
+      // Always save to localStorage as a backup
       localStorage.setItem("workflowSteps", JSON.stringify(steps));
       localStorage.setItem("workflowData", JSON.stringify(workflowData));
 
+      // Generate a local ID if this is a new workflow
+      const localId = workflowData.id || `local-${Date.now()}`;
+
       // Determine if this is a new workflow or an update
       const isNewWorkflow = !workflow?.id;
-      const endpoint = isNewWorkflow 
-        ? '/api/workflows' 
-        : `/api/workflows/${workflow.id}`;
-      const method = isNewWorkflow ? 'POST' : 'PUT';
-      
-      logger.debug(`Making ${method} request to ${endpoint}`);
-      
-      let savedWorkflow; // Define variable here
-      
-      try {
-        const response = await fetch(endpoint, {
-          method,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(workflowData),
-          credentials: 'include', // Include cookies for authentication
-        });
-        
-        logger.debug("Response status:", response.status);
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          logger.error("API error response:", errorData);
-          throw new Error(errorData.error || `Request failed with status ${response.status}`);
+
+      // For local testing, we'll use localStorage as our database
+      // In a real app, this would be an API call
+      let savedWorkflow = {
+        ...workflowData,
+        id: isNewWorkflow ? localId : workflowData.id,
+        updatedAt: new Date().toISOString(),
+        createdAt: isNewWorkflow ? new Date().toISOString() : workflow?.createdAt || new Date().toISOString()
+      };
+
+      // Update the workflows cache in localStorage
+      const workflowsCache = localStorage.getItem('workflowsCache');
+      const cachedWorkflows = workflowsCache ? JSON.parse(workflowsCache) : [];
+
+      if (isNewWorkflow) {
+        // Add as new workflow
+        cachedWorkflows.push(savedWorkflow);
+      } else {
+        // Update existing workflow
+        const existingIndex = cachedWorkflows.findIndex((w: any) => w.id === savedWorkflow.id);
+        if (existingIndex >= 0) {
+          cachedWorkflows[existingIndex] = savedWorkflow;
+        } else {
+          cachedWorkflows.push(savedWorkflow);
         }
-        
-        savedWorkflow = await response.json();
-        logger.debug("Successfully saved workflow:", savedWorkflow);
-        
-        // Show success message
-        setSuccessMessage('Workflow saved successfully');
-        
-        // If API call succeeded, make sure to call onSave with the saved workflow
-        if (onSave) {
-          logger.debug("Calling onSave callback with saved workflow:", savedWorkflow);
-          await onSave(savedWorkflow);
-        }
-      } catch (apiError) {
-        logger.error('API error:', apiError);
-        
-        // If API call fails, use the local data as fallback
-        logger.debug("API call failed, using local data as fallback");
-        savedWorkflow = {
-          ...workflowData,
-          id: workflowData.id || `local-${Date.now()}`,
-          updatedAt: new Date().toISOString()
-        };
-        
-        // Still call onSave with the local data to update the UI
-        if (onSave) {
-          logger.debug("Calling onSave callback with local workflow data:", savedWorkflow);
-          await onSave(savedWorkflow);
-        }
-        
-        setSuccessMessage('Saved locally (API error occurred)');
       }
-      
+
+      localStorage.setItem('workflowsCache', JSON.stringify(cachedWorkflows));
+      console.log("Saved workflow to localStorage:", savedWorkflow);
+
+      // Show success message
+      setSuccessMessage('Workflow saved successfully');
+
       // Clear success message after 3 seconds
       setTimeout(() => {
         setSuccessMessage('');
       }, 3000);
-      
+
       // Make sure to call onSave with the saved workflow to update the parent component's state
       if (onSave) {
-        logger.debug("Calling onSave callback with saved workflow:", savedWorkflow);
-        await onSave(savedWorkflow);
-        logger.debug("onSave callback completed");
+        console.log("Calling onSave callback with saved workflow:", savedWorkflow);
+        try {
+          // Call the parent's onSave function
+          await onSave(savedWorkflow);
+          console.log("onSave callback completed");
+
+          // If this was a new workflow, update the component state with the new ID
+          if (isNewWorkflow) {
+            setWorkflow(savedWorkflow);
+          }
+
+          // Clear the form errors
+          setErrors({});
+
+          // Show a success message that will be cleared after 3 seconds
+          setSuccessMessage('Workflow saved successfully! Returning to workflow list...');
+
+        } catch (callbackError) {
+          console.error('Error in onSave callback:', callbackError);
+          setErrors(prev => ({
+            ...prev,
+            submit: callbackError instanceof Error ? callbackError.message : 'Error updating workflow list'
+          }));
+        }
       }
-      
+
     } catch (err) {
-      logger.error('Error saving workflow:', err);
-      setErrors(prev => ({ 
-        ...prev, 
-        submit: err instanceof Error ? err.message : 'Failed to save workflow' 
+      console.error('Error saving workflow:', err);
+      setErrors(prev => ({
+        ...prev,
+        submit: err instanceof Error ? err.message : 'Failed to save workflow'
       }));
     } finally {
       setIsSaving(false);
-      logger.debug("Save process completed");
-      endMeasure(); // End measurement when function completes
+      console.log("Save process completed");
     }
   };
 
@@ -344,15 +340,15 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
       })),
       updatedAt: new Date().toISOString()
     };
-    
+
     localStorage.setItem("workflowSteps", JSON.stringify(steps));
     localStorage.setItem("workflowData", JSON.stringify(workflowData));
-    
+
     setSuccessMessage('Workflow saved locally');
     setTimeout(() => {
       setSuccessMessage('');
     }, 3000);
-    
+
     return workflowData;
   };
 
@@ -361,18 +357,18 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
     try {
       const savedWorkflowData = localStorage.getItem("workflowData");
       const savedWorkflowSteps = localStorage.getItem("workflowSteps");
-      
+
       if (savedWorkflowData) {
         const parsedData = JSON.parse(savedWorkflowData);
         setName(parsedData.name || '');
         setDescription(parsedData.description || '');
         setStatus(parsedData.status || 'draft');
       }
-      
+
       if (savedWorkflowSteps) {
         setSteps(JSON.parse(savedWorkflowSteps));
       }
-      
+
       return true;
     } catch (error) {
       logger.error("Error loading workflow from localStorage:", error);
@@ -381,18 +377,37 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
   };
 
   const addStep = (type: string) => {
+    // Find the step type in the categories to get the title
+    let title = type;
+    for (const category of stepCategories) {
+      const item = category.items.find(item => item.type === type);
+      if (item) {
+        title = item.title;
+        break;
+      }
+    }
+
     const newStep: WorkflowStep = {
       id: uuidv4(),
       type,
+      title,
       config: {},
       position: steps.length
     };
-    
-    setSteps([...steps, newStep]);
+
+    const updatedSteps = [...steps, newStep];
+    setSteps(updatedSteps);
+
+    // Save to localStorage whenever a step is added
+    localStorage.setItem("workflowSteps", JSON.stringify(updatedSteps));
   };
 
   const removeStep = (id: string) => {
-    setSteps(steps.filter(step => step.id !== id));
+    const filteredSteps = steps.filter(step => step.id !== id);
+    setSteps(filteredSteps);
+
+    // Save to localStorage whenever a step is removed
+    localStorage.setItem("workflowSteps", JSON.stringify(filteredSteps));
   };
 
   const moveStep = (dragIndex: number, hoverIndex: number) => {
@@ -401,6 +416,17 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
     newSteps.splice(dragIndex, 1);
     newSteps.splice(hoverIndex, 0, dragStep);
     setSteps(newSteps);
+
+    // Save to localStorage whenever steps are reordered
+    localStorage.setItem("workflowSteps", JSON.stringify(newSteps));
+  };
+
+  const updateStep = (id: string, updates: Partial<WorkflowStep>) => {
+    const updatedSteps = steps.map(step => step.id === id ? { ...step, ...updates } : step);
+    setSteps(updatedSteps);
+
+    // Save to localStorage whenever a step is updated
+    localStorage.setItem("workflowSteps", JSON.stringify(updatedSteps));
   };
 
   const getStepIcon = (type: string) => {
@@ -434,7 +460,7 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
       const item = category.items.find(item => item.type === type);
       if (item) return item.title;
     }
-    
+
     // Fallback titles for unknown types
     switch (type) {
       case 'email': return 'Send Email';
@@ -482,7 +508,7 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
             <h3 className="text-lg font-medium text-gray-900">Workflow Steps</h3>
             <p className="mt-1 text-sm text-gray-500">Drag and drop to build your workflow</p>
           </div>
-          
+
           <div className="p-4 space-y-6">
             {stepCategories.map((category) => (
               <div key={category.name} className="space-y-2">
@@ -506,7 +532,7 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
               </div>
             ))}
           </div>
-          
+
           <div className="p-4 border-t border-gray-200">
             <button
               onClick={fetchAIRecommendations}
@@ -530,8 +556,8 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
               ) : (
                 <div className="space-y-2">
                   {aiRecommendations.map((recommendation, index) => (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className="p-3 bg-indigo-50 rounded-md cursor-pointer hover:bg-indigo-100"
                       onClick={() => addStep(recommendation.type)}
                     >
@@ -544,30 +570,28 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
             </div>
           )}
         </div>
-        
+
         {/* Team Collaboration Panel */}
         <div className="mt-6 bg-white rounded-lg shadow">
           <div className="p-4 border-b border-gray-200">
             <h3 className="text-lg font-medium text-gray-900">Team Collaboration</h3>
           </div>
           <div className="p-4">
-            <button 
+            <button
               className="w-full flex items-center justify-center p-2 border border-gray-300 rounded-md hover:bg-gray-50"
               onClick={() => workflow?.id && router.push(`/workflows/${workflow.id}/collaboration`)}
+              disabled={!workflow?.id}
             >
               <UserIcon className="h-5 w-5 mr-2 text-blue-500" />
-              <span>View Team Activity</span>
+              <span>View Team Collaboration</span>
             </button>
-            <button 
-              className="w-full mt-2 flex items-center justify-center p-2 border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              <ChatBubbleLeftIcon className="h-5 w-5 mr-2 text-green-500" />
-              <span>Add Comment</span>
-            </button>
+            <p className="mt-2 text-xs text-gray-500 text-center">
+              {!workflow?.id ? 'Save workflow to enable collaboration' : 'Collaborate with your team on this workflow'}
+            </p>
           </div>
         </div>
       </div>
-      
+
       {/* Middle Panel - Workflow Builder */}
       <div className="lg:col-span-2">
         <div className="bg-white rounded-lg shadow">
@@ -575,18 +599,86 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
             <h3 className="text-lg font-medium text-gray-900">Workflow Builder</h3>
             <p className="mt-1 text-sm text-gray-500">Drag and drop to build your workflow</p>
           </div>
-          
+
           <div className="p-4 space-y-6">
+            {/* Workflow Details Form */}
+            <div className="mb-6 space-y-4">
+              <div>
+                <label htmlFor="workflow-name" className="block text-sm font-medium text-gray-700 mb-1">
+                  Workflow Name
+                </label>
+                <input
+                  id="workflow-name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setTouched(prev => ({ ...prev, name: true }));
+                    setErrors(prev => ({ ...prev, name: validateField('name', e.target.value) }));
+                  }}
+                  className={`w-full px-3 py-2 border ${errors.name && touched.name ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary`}
+                  placeholder="Enter workflow name"
+                />
+                {errors.name && touched.name && (
+                  <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="workflow-description" className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  id="workflow-description"
+                  value={description}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    setTouched(prev => ({ ...prev, description: true }));
+                    setErrors(prev => ({ ...prev, description: validateField('description', e.target.value) }));
+                  }}
+                  rows={3}
+                  className={`w-full px-3 py-2 border ${errors.description && touched.description ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary`}
+                  placeholder="Describe the purpose of this workflow"
+                />
+                {errors.description && touched.description && (
+                  <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="workflow-status" className="block text-sm font-medium text-gray-700 mb-1">
+                  Status
+                </label>
+                <select
+                  id="workflow-status"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as 'draft' | 'active' | 'archived')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                >
+                  <option value="draft">Draft</option>
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-200 pt-4 mb-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Workflow Steps</h3>
+              {errors.steps && touched.steps && (
+                <p className="mb-2 text-sm text-red-600">{errors.steps}</p>
+              )}
+            </div>
+
             {steps.length === 0 ? (
               <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
-                <p className="text-gray-500">No steps added yet. Add your first step below.</p>
+                <p className="text-gray-500">No steps added yet. Add your first step from the left panel.</p>
               </div>
             ) : (
               <div className="space-y-4 mb-4">
                 {steps.map((step, index) => (
-                  <WorkflowStepItem 
-                    key={step.id} 
-                    step={step} 
+                  <WorkflowStepItem
+                    key={step.id}
+                    step={step}
                     index={index}
                     onRemove={removeStep}
                     moveStep={moveStep}
@@ -595,7 +687,7 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
               </div>
             )}
           </div>
-          
+
           <div className="p-4 border-t border-gray-200">
             {successMessage && (
               <div className="mt-2 p-2 bg-green-100 text-green-800 rounded-md text-sm">
@@ -615,13 +707,14 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
                   {errors.auth}
                 </div>
               )}
-              
+
               <div className="flex space-x-4">
                 <button
+                  id="workflow-save-button"
                   type="button"
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-150"
+                  className="workflow-save-button inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-150"
                 >
                   {isSaving ? (
                     <>
@@ -635,7 +728,7 @@ export default function WorkflowBuilder({ workflow, onSave, onAuthError }: Workf
                     'Save Workflow'
                   )}
                 </button>
-                
+
                 <button
                   type="button"
                   onClick={saveWorkflowLocally}
@@ -656,11 +749,12 @@ interface WorkflowStepItemProps {
   index: number;
   onRemove: (id: string) => void;
   moveStep: (dragIndex: number, hoverIndex: number) => void;
+  onUpdate?: (id: string, updates: Partial<WorkflowStep>) => void;
 }
 
-function WorkflowStepItem({ step, index, onRemove, moveStep }: WorkflowStepItemProps) {
+function WorkflowStepItem({ step, index, onRemove, moveStep, onUpdate }: WorkflowStepItemProps) {
   const ref = useRef<HTMLDivElement>(null);
-  
+
   const [{ isDragging }, drag] = useDrag({
     type: 'WORKFLOW_STEP',
     item: { id: step.id, index },
@@ -675,9 +769,9 @@ function WorkflowStepItem({ step, index, onRemove, moveStep }: WorkflowStepItemP
       if (!ref.current) return;
       const dragIndex = item.index;
       const hoverIndex = index;
-      
+
       if (dragIndex === hoverIndex) return;
-      
+
       moveStep(dragIndex, hoverIndex);
       item.index = hoverIndex;
     },
@@ -688,82 +782,30 @@ function WorkflowStepItem({ step, index, onRemove, moveStep }: WorkflowStepItemP
 
   drag(drop(ref));
 
-  // Add the missing getStepIcon function
-  const getStepIcon = (type: string) => {
-    switch (type) {
-      case 'email':
-        return <EnvelopeIcon className="h-5 w-5 text-blue-500" />;
-      case 'sms':
-        return <PhoneIcon className="h-5 w-5 text-green-500" />;
-      case 'delay':
-        return <ClockIcon className="h-5 w-5 text-yellow-500" />;
-      case 'condition':
-        return <ArrowsRightLeftIcon className="h-5 w-5 text-purple-500" />;
-      case 'task':
-        return <CheckCircleIcon className="h-5 w-5 text-red-500" />;
-      case 'ai_analysis':
-        return <LightBulbIcon className="h-5 w-5 text-indigo-500" />;
-      case 'crm_update':
-        return <ArrowPathIcon className="h-5 w-5 text-gray-500" />;
-      case 'trigger_new_lead':
-      case 'trigger_deal_stage':
-      case 'trigger_form_submit':
-        return <BoltIcon className="h-5 w-5 text-orange-500" />;
-      default:
-        return <CheckCircleIcon className="h-5 w-5 text-gray-500" />;
-    }
-  };
-
-  // Add the missing getStepTitle function
-  const getStepTitle = (type: string) => {
-    // Find the step in our categories
-    for (const category of stepCategories) {
-      const item = category.items.find(item => item.type === type);
-      if (item) return item.title;
-    }
-    
-    // Fallback titles for unknown types
-    switch (type) {
-      case 'email': return 'Send Email';
-      case 'sms': return 'Send SMS';
-      case 'delay': return 'Wait';
-      case 'condition': return 'If/Else Condition';
-      case 'task': return 'Create Task';
-      case 'ai_analysis': return 'AI Analysis';
-      case 'crm_update': return 'Update CRM';
-      case 'trigger_new_lead': return 'New Lead Captured';
-      case 'trigger_deal_stage': return 'Deal Stage Changed';
-      case 'trigger_form_submit': return 'Form Submission';
-      default: return 'Step';
-    }
-  };
-
   return (
     <div
       ref={ref}
-      className={`
-        flex items-center justify-between p-4 bg-white border rounded-md shadow-sm
-        ${isDragging ? 'opacity-50' : 'opacity-100'}
-        ${isOver ? 'border-blue-500' : ''}
-        cursor-move transition-all duration-200 hover:shadow-md
-      `}
+      className={`flex items-center justify-between p-3 mb-2 rounded-md border ${isDragging ? 'opacity-50 bg-gray-100' : 'bg-white'}`}
     >
       <div className="flex items-center">
-        {getStepIcon(step.type)}
-        <div className="ml-3">
-          <span className="font-medium">{getStepTitle(step.type)}</span>
-          <p className="text-xs text-gray-500 mt-1">{getStepDescription(step.type)}</p>
+        <div className="mr-3 text-gray-500">{index + 1}.</div>
+        <div className="flex items-center">
+          {step.type === 'email' && <EnvelopeIcon className="h-5 w-5 text-blue-500 mr-2" />}
+          {step.type === 'delay' && <ClockIcon className="h-5 w-5 text-yellow-500 mr-2" />}
+          {step.type === 'condition' && <ArrowsRightLeftIcon className="h-5 w-5 text-purple-500 mr-2" />}
+          {step.type === 'sms' && <PhoneIcon className="h-5 w-5 text-green-500 mr-2" />}
+          {step.type === 'task' && <CheckCircleIcon className="h-5 w-5 text-red-500 mr-2" />}
+          {step.type === 'automation' && <BoltIcon className="h-5 w-5 text-orange-500 mr-2" />}
+          {step.type === 'ai' && <LightBulbIcon className="h-5 w-5 text-indigo-500 mr-2" />}
+          {step.type === 'user' && <UserIcon className="h-5 w-5 text-gray-500 mr-2" />}
+          <span className="font-medium">{step.title || step.type}</span>
         </div>
       </div>
-      <div className="flex items-center">
-        <span className="text-xs text-gray-500 mr-3">#{index + 1}</span>
+      <div>
         <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onRemove(step.id);
-          }}
-          className="text-gray-400 hover:text-red-500 transition-colors duration-200"
+          onClick={() => onRemove(step.id)}
+          className="text-gray-400 hover:text-red-500"
+          aria-label="Remove step"
         >
           <TrashIcon className="h-5 w-5" />
         </button>

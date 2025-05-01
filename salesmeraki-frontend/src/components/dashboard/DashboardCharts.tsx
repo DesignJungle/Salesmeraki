@@ -11,7 +11,9 @@ import {
   Title,
   Tooltip,
   Legend,
+  ChartOptions
 } from 'chart.js';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 ChartJS.register(
   CategoryScale,
@@ -30,38 +32,99 @@ interface SalesData {
     label: string;
     data: number[];
     borderColor?: string;
-    backgroundColor?: string;
+    backgroundColor?: string | string[];
   }[];
 }
 
 export function RevenueChart({ data }: { data: SalesData }) {
-  const options = {
+  const { formatAmount, currency, convertAmount } = useCurrency();
+  const options: ChartOptions<'line'> = {
     responsive: true,
+    maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 5,
+        bottom: 5
+      }
+    },
     plugins: {
       legend: { position: 'top' as const },
-      title: { display: true, text: 'Revenue Trend' },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        callbacks: {
+          label: function(context) {
+            let label = context.dataset.label || '';
+            if (label) {
+              label += ': ';
+            }
+            if (context.parsed.y !== null) {
+              label += formatAmount(context.parsed.y, true);
+            }
+            return label;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: false,
+        ticks: {
+          callback: function(value) {
+            return formatAmount(value as number, true);
+          }
+        }
+      },
+    },
+    interaction: {
+      mode: 'nearest',
+      axis: 'x',
+      intersect: false
     },
   };
 
-  return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <Line options={options} data={data} />
-    </div>
-  );
+  return <Line options={options} data={data} />;
 }
 
 export function SalesBarChart({ data }: { data: SalesData }) {
-  const options = {
+  const { formatAmount, currency, convertAmount } = useCurrency();
+  const options: ChartOptions<'bar'> = {
     responsive: true,
+    maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 5,
+        bottom: 5
+      }
+    },
     plugins: {
-      legend: { position: 'top' as const },
-      title: { display: true, text: 'Sales by Category' },
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            let label = context.dataset.label || '';
+            if (label) {
+              label += ': ';
+            }
+            if (context.parsed.y !== null) {
+              label += formatAmount(context.parsed.y, true);
+            }
+            return label;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(value) {
+            return formatAmount(value as number, true);
+          }
+        }
+      },
     },
   };
 
-  return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <Bar options={options} data={data} />
-    </div>
-  );
+  return <Bar options={options} data={data} />;
 }

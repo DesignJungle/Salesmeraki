@@ -1,9 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+// Remove the Inter font import
 import SessionProvider from '@/components/providers/SessionProvider';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'SalesMeraki - AI-Powered Sales Enablement',
@@ -17,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className="font-sans">
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>

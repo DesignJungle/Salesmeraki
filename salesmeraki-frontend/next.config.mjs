@@ -15,6 +15,8 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Use SWC instead of Babel
+  swcMinify: true,
 };
 
 export default nextConfig;
