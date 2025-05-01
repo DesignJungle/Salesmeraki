@@ -1,14 +1,17 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Get time range from query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const timeRange = searchParams.get('timeRange') || '30d';
 
     // Mock data for development
     const mockData = {
@@ -18,23 +21,23 @@ export async function GET() {
           {
             label: 'Revenue',
             data: [12000, 19000, 15000, 22000, 30000, 28000],
-            borderColor: 'rgb(54, 162, 235)',
-            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
           },
           {
-            label: 'Transactions',
-            data: [120, 190, 150, 220, 300, 280],
-            borderColor: 'rgb(255, 99, 132)',
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            label: 'Target',
+            data: [15000, 15000, 18000, 18000, 21000, 21000],
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
           }
         ],
       },
-      conversionRates: [3.2, 3.5, 3.8, 4.1, 4.3, 4.0],
       topProducts: [
-        { name: 'Product A', revenue: 45000, growth: 12 },
-        { name: 'Product B', revenue: 32000, growth: 8 },
-        { name: 'Product C', revenue: 28000, growth: -3 },
-        { name: 'Product D', revenue: 21000, growth: 15 },
+        { name: 'Enterprise Solution', revenue: 125000, growth: 12.5 },
+        { name: 'CRM Integration', revenue: 85000, growth: 8.3 },
+        { name: 'Analytics Platform', revenue: 65000, growth: 15.2 },
+        { name: 'Mobile App', revenue: 45000, growth: -2.1 },
+        { name: 'Support Package', revenue: 35000, growth: 5.7 }
       ],
     };
 

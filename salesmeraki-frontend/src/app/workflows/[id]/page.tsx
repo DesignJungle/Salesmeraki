@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import WorkflowAnalyticsDashboard from '@/components/workflows/WorkflowAnalytics';
+import WorkflowAnalytics from '@/components/workflows/WorkflowAnalytics';
 import WorkflowABTesting from '@/components/workflows/WorkflowABTest';
 import WorkflowLogs from '@/components/workflows/WorkflowLogs';
 import { useWorkflow } from '@/hooks/useWorkflow';
@@ -102,7 +102,7 @@ export default function WorkflowPage() {
 
         <div className="py-6">
           {activeTab === 'analytics' && workflow && (
-            <WorkflowAnalyticsDashboard workflowId={workflow.id} />
+            <WorkflowAnalytics workflowId={workflow.id} />
           )}
           {activeTab === 'testing' && workflow && (
             <WorkflowABTesting workflowId={workflow.id} />

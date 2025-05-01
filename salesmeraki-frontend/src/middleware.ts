@@ -13,7 +13,11 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/dashboard') ||
     request.nextUrl.pathname.startsWith('/settings') ||
     request.nextUrl.pathname.startsWith('/workflows') ||
-    request.nextUrl.pathname.startsWith('/customers');
+    request.nextUrl.pathname.startsWith('/customers') ||
+    request.nextUrl.pathname.startsWith('/coaching') ||
+    request.nextUrl.pathname.startsWith('/analytics') ||
+    request.nextUrl.pathname.startsWith('/intelligence') ||
+    request.nextUrl.pathname.startsWith('/opportunities');
 
   // Only redirect if token is missing AND route is protected
   if (!token && isProtectedRoute) {
@@ -37,6 +41,10 @@ export const config = {
     '/settings/:path*',
     '/workflows/:path*',
     '/customers/:path*',
+    '/coaching/:path*',
+    '/analytics/:path*',
+    '/intelligence/:path*',
+    '/opportunities/:path*',
     '/auth/:path*'
   ],
 };

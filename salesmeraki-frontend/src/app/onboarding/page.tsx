@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
+import {
   CheckCircleIcon,
-  ArrowRightIcon 
+  ArrowRightIcon
 } from '@heroicons/react/24/solid';
 
 const onboardingSteps = [
@@ -47,14 +47,14 @@ export default function Onboarding() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         <div className="relative">
           <div className="absolute left-0 w-full h-1 bg-gray-200 rounded">
-            <div 
+            <div
               className="absolute h-full bg-primary rounded transition-all duration-500"
               style={{ width: `${((currentStep + 1) / onboardingSteps.length) * 100}%` }}
             />
           </div>
           <div className="relative flex justify-between">
             {onboardingSteps.map((step, index) => (
-              <div 
+              <div
                 key={index}
                 className={`flex items-center justify-center w-8 h-8 rounded-full ${
                   index <= currentStep ? 'bg-primary' : 'bg-gray-200'

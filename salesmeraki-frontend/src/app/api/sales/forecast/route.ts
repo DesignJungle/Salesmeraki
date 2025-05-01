@@ -1,30 +1,41 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get time range from query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const timeRange = searchParams.get('timeRange') || '6m';
+
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+
     // Mock data for development
     const mockData = {
+      growthRate: 18.5,
       revenueProjection: {
-        labels: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        datasets: [{
-          label: 'Projected Revenue',
-          data: [32000, 35000, 40000, 38000, 42000, 50000],
-          backgroundColor: 'rgba(75, 192, 192, 0.6)',
-        }],
-      },
-      confidenceInterval: {
-        upper: [34000, 38000, 43000, 42000, 46000, 55000],
-        lower: [30000, 32000, 37000, 34000, 38000, 45000],
-      },
-      growthRate: 15.8,
+        labels: [
+          `Q1 ${currentYear}`,
+          `Q2 ${currentYear}`,
+          `Q3 ${currentYear}`,
+          `Q4 ${currentYear}`,
+          `Q1 ${nextYear}`,
+          `Q2 ${nextYear}`
+        ],
+        datasets: [
+          {
+            label: 'Projected Revenue',
+            data: [120000, 135000, 150000, 175000, 195000, 220000],
+            backgroundColor: 'rgba(16, 185, 129, 0.7)' // Green
+          }
+        ]
+      }
     };
 
     return NextResponse.json(mockData);

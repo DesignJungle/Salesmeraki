@@ -60,7 +60,7 @@
   .feature-icon {
     @apply h-12 w-12 text-primary mb-6
            bg-primary/10 p-2 rounded-xl
-           transform group-hover:scale-110 
+           transform group-hover:scale-110
            transition-transform duration-300;
   }
 
@@ -137,7 +137,7 @@
   }
 
   .gradient-text {
-    @apply bg-clip-text text-transparent 
+    @apply bg-clip-text text-transparent
            bg-gradient-to-r from-gradient-start via-gradient-mid to-gradient-end;
   }
 
@@ -147,7 +147,7 @@
   }
 
   .use-case-card {
-    @apply bg-white rounded-xl shadow-sm hover:shadow-md 
+    @apply bg-white rounded-xl shadow-sm hover:shadow-md
            transition-shadow duration-300 p-8
            border border-gray-100
            hover:border-primary/20;
@@ -164,15 +164,15 @@
 
   /* Add FAQ specific styles */
   .faq-card {
-    @apply bg-white rounded-xl shadow-sm 
-           hover:shadow-md transition-all duration-300 
+    @apply bg-white rounded-xl shadow-sm
+           hover:shadow-md transition-all duration-300
            p-6 cursor-pointer
            border border-gray-100
            hover:border-primary/20;
   }
 
   .faq-question {
-    @apply text-lg font-semibold text-gray-900 
+    @apply text-lg font-semibold text-gray-900
            flex justify-between items-center;
   }
 
@@ -250,4 +250,113 @@
 /* Add this new class for a deeper sidebar gradient */
 .sidebar-gradient {
   @apply bg-gradient-to-b from-gray-900 via-primary-dark to-gray-900;
+}
+
+/* High Contrast Mode Styles */
+.high-contrast {
+  /* Increase contrast for text */
+  --text-color: #000000;
+  --background-color: #ffffff;
+  --link-color: #0000EE;
+  --link-visited-color: #551A8B;
+  --primary-color: #0000EE;
+  --error-color: #D50000;
+  --success-color: #006400;
+  --border-color: #000000;
+}
+
+.high-contrast body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.high-contrast a {
+  color: var(--link-color);
+  text-decoration: underline;
+}
+
+.high-contrast a:visited {
+  color: var(--link-visited-color);
+}
+
+.high-contrast button:not([disabled]),
+.high-contrast input[type="button"]:not([disabled]),
+.high-contrast input[type="submit"]:not([disabled]) {
+  border: 2px solid var(--border-color);
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.high-contrast .text-gray-500,
+.high-contrast .text-gray-600,
+.high-contrast .text-gray-700 {
+  color: var(--text-color) !important;
+}
+
+.high-contrast .bg-gray-50,
+.high-contrast .bg-gray-100,
+.high-contrast .bg-gray-200 {
+  background-color: var(--background-color) !important;
+  border: 1px solid var(--border-color);
+}
+
+.high-contrast .border,
+.high-contrast .border-gray-200,
+.high-contrast .border-gray-300 {
+  border-color: var(--border-color) !important;
+  border-width: 2px;
+}
+
+.high-contrast .shadow,
+.high-contrast .shadow-md,
+.high-contrast .shadow-lg {
+  box-shadow: 0 0 0 2px var(--border-color) !important;
+}
+
+/* Focus styles for high contrast mode */
+.high-contrast *:focus {
+  outline: 3px solid var(--primary-color) !important;
+  outline-offset: 2px !important;
+}
+
+/* Reduced Motion Styles */
+.reduced-motion * {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* No Animations Styles */
+.no-animations * {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* Accessibility Utilities */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.sr-only.focus-visible:focus,
+.sr-only.focus:focus,
+.sr-only:focus-visible,
+.focus:not-sr-only {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
 }

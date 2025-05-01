@@ -1,46 +1,41 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import type { NextRequest } from 'next/server';
+import { getSession } from '@/lib/session';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get time range from query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const timeRange = searchParams.get('timeRange') || '30d';
+
     // Mock data for development
     const mockData = {
       customerSegments: {
-        labels: ['Enterprise', 'Mid-Market', 'SMB', 'Startup', 'Individual'],
-        datasets: [{
-          data: [35, 25, 20, 15, 5],
-          backgroundColor: [
-            'rgba(54, 162, 235, 0.6)',
-            'rgba(255, 99, 132, 0.6)',
-            'rgba(75, 192, 192, 0.6)',
-            'rgba(255, 206, 86, 0.6)',
-            'rgba(153, 102, 255, 0.6)',
-          ],
-          borderColor: [
-            'rgb(54, 162, 235)',
-            'rgb(255, 99, 132)',
-            'rgb(75, 192, 192)',
-            'rgb(255, 206, 86)',
-            'rgb(153, 102, 255)',
-          ],
-          borderWidth: 1,
-        }],
+        labels: ['Enterprise', 'Mid-Market', 'SMB', 'Startup'],
+        datasets: [
+          {
+            data: [35, 40, 15, 10],
+            backgroundColor: [
+              'rgba(59, 130, 246, 0.7)',  // Blue
+              'rgba(16, 185, 129, 0.7)',  // Green
+              'rgba(245, 158, 11, 0.7)',  // Yellow
+              'rgba(239, 68, 68, 0.7)'    // Red
+            ]
+          }
+        ]
       },
       keyFindings: [
-        'Enterprise customers have the highest lifetime value, averaging $85,000',
-        'Mid-Market segment shows the fastest growth at 28% YoY',
-        'Customer retention is highest in the Enterprise segment at 92%',
-        'SMB customers respond best to educational content and webinars',
-        'Startups have the shortest sales cycle at 15 days average',
-      ],
-      customerLifetimeValue: 42000,
-      churnRate: 5.2,
+        'Mid-Market segment shows the highest growth potential with 40% of revenue',
+        'Enterprise customers have the highest retention rate at 85%',
+        'SMB segment has the shortest sales cycle averaging 15 days',
+        'Startup segment shows the highest churn rate at 12%',
+        'Cross-selling opportunities identified in 65% of Mid-Market accounts'
+      ]
     };
 
     return NextResponse.json(mockData);

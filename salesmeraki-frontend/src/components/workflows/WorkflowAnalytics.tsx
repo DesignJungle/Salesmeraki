@@ -1,32 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { fetchWithAuth } from '@/utils/errorHandler';
-import { WorkflowMetrics } from '@/types/workflows';
 
 interface WorkflowAnalyticsProps {
-  workflowId: string;
-  timeRange?: string;
+  workflowId?: string;  // Optional to support both global and workflow-specific analytics
 }
 
-export default function WorkflowAnalytics({ workflowId, timeRange = '30d' }: WorkflowAnalyticsProps) {
-  const [metrics, setMetrics] = useState<WorkflowMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function WorkflowAnalytics({ workflowId }: WorkflowAnalyticsProps) {
+  const [timeRange, setTimeRange] = useState('7d');
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!workflowId) {
-      setLoading(false);
-      return;
-    }
-
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
-        const data = await fetchWithAuth(`/api/workflows/${workflowId}/analytics?timeRange=${timeRange}`);
-        setMetrics(data);
         setError(null);
+        
+        // Determine endpoint based on whether workflowId is provided
+        const endpoint = workflowId 
+          ? `/api/workflows/${workflowId}/analytics?timeRange=${timeRange}`
+          : `/api/workflows/analytics?timeRange=${timeRange}`;
+        
+        const data = await fetchWithAuth(endpoint);
+        if (!data) {
+          throw new Error('No data returned from analytics API');
+        }
+        setAnalyticsData(data);
       } catch (err) {
-        setError('Failed to load analytics data');
-        console.error(err);
+        console.error('Error fetching analytics:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load analytics data');
       } finally {
         setLoading(false);
       }
@@ -35,57 +38,81 @@ export default function WorkflowAnalytics({ workflowId, timeRange = '30d' }: Wor
     fetchAnalytics();
   }, [workflowId, timeRange]);
 
-  if (!workflowId) {
-    return <div>No workflow selected</div>;
-  }
-
-  if (loading) {
-    return <div>Loading analytics...</div>;
-  }
-
-  if (error) {
-    return <div>{error}</div>;
-  }
-
-  if (!metrics) {
-    return <div>No analytics data available</div>;
-  }
+  // Render appropriate UI based on whether this is global or workflow-specific analytics
+  const title = workflowId ? 'Workflow Performance Analytics' : 'Global Workflow Analytics';
 
   return (
-    <div className="workflow-analytics">
-      <h2>Workflow Performance</h2>
+    <div className="bg-white rounded-lg shadow">
+      <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+        <h3 className="text-lg font-medium leading-6 text-gray-900">{title}</h3>
+      </div>
       
-      <div className="metrics-grid">
-        <div className="metric-card">
-          <h3>Completion Rate</h3>
-          <p>{metrics.completionRate}%</p>
-        </div>
-        
-        <div className="metric-card">
-          <h3>Average Duration</h3>
-          <p>{metrics.averageDuration} hours</p>
-        </div>
-        
-        <div className="metric-card">
-          <h3>Conversion Rate</h3>
-          <p>{metrics.conversionRate}%</p>
-        </div>
-        
-        <div className="metric-card">
-          <h3>Active Instances</h3>
-          <p>{metrics.activeInstances}</p>
+      {/* Time range selector */}
+      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+        <div className="flex space-x-4">
+          {['7d', '30d', '90d', 'all'].map((range) => (
+            <button
+              key={range}
+              onClick={() => setTimeRange(range)}
+              className={`px-3 py-1 text-sm rounded-md ${
+                timeRange === range
+                  ? 'bg-primary text-white'
+                  : 'bg-white text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              {range === '7d' ? '7 Days' : 
+               range === '30d' ? '30 Days' : 
+               range === '90d' ? '90 Days' : 'All Time'}
+            </button>
+          ))}
         </div>
       </div>
       
-      <h3>Step Performance</h3>
-      <div className="step-performance">
-        {metrics.stepPerformance.map(step => (
-          <div key={step.stepId} className="step-metric">
-            <p>Step: {step.stepId}</p>
-            <p>Completion: {step.completionRate}%</p>
-            <p>Duration: {step.averageDuration} hours</p>
+      {/* Content area */}
+      <div className="p-4">
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full" role="status">
+              <span className="sr-only">Loading...</span>
+            </div>
           </div>
-        ))}
+        ) : error ? (
+          <div className="bg-red-50 border-l-4 border-red-400 p-4">
+            <div className="flex">
+              <div className="ml-3">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            </div>
+          </div>
+        ) : !analyticsData ? (
+          <div className="text-center py-8 text-gray-500">
+            No analytics data available
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Analytics content would go here */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium text-gray-700">Total Executions</h4>
+              <p className="text-2xl font-bold mt-2">
+                {analyticsData.totalExecutions || 0}
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium text-gray-700">Success Rate</h4>
+              <p className="text-2xl font-bold mt-2">
+                {analyticsData.successRate ? `${analyticsData.successRate}%` : 'N/A'}
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium text-gray-700">Avg. Execution Time</h4>
+              <p className="text-2xl font-bold mt-2">
+                {analyticsData.avgExecutionTime ? `${analyticsData.avgExecutionTime}ms` : 'N/A'}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

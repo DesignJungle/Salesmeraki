@@ -39,80 +39,136 @@ class Logger {
 
 export const logger = new Logger();
 
+// WebSocket service for real-time collaboration
 class WebSocketService {
-  private ws: WebSocket | null = null;
-  private handlers: Map<string, Set<MessageHandler>> = new Map();
+  private socket: WebSocket | null = null;
+  private subscribers: Record<string, Function[]> = {};
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private userId: string | null = null;
 
-  initialize(token: string) {
-    this.connect(token);
+  constructor() {
+    this.initialize = this.initialize.bind(this);
+    this.connect = this.connect.bind(this);
+    this.reconnect = this.reconnect.bind(this);
+    this.disconnect = this.disconnect.bind(this);
+    this.send = this.send.bind(this);
+    this.subscribe = this.subscribe.bind(this);
+    this.unsubscribe = this.unsubscribe.bind(this);
+    this.subscribeToDocumentChanges = this.subscribeToDocumentChanges.bind(this);
   }
 
-  private connect(token: string) {
-    this.ws = new WebSocket(`${process.env.NEXT_PUBLIC_WS_URL}/ws?token=${token}`);
+  initialize(userId: string) {
+    this.userId = userId;
+    this.connect();
+  }
+
+  connect() {
+    try {
+      // Use environment variable for WebSocket URL
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'wss://api.salesmeraki.com/ws';
+      
+      this.socket = new WebSocket(wsUrl);
+      
+      this.socket.onopen = () => {
+        console.log('WebSocket connection established');
+        this.reconnectAttempts = 0;
+        
+        // Authenticate the connection
+        if (this.userId) {
+          this.send('authenticate', { userId: this.userId });
+        }
+      };
+      
+      this.socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const { type, payload } = data;
+          
+          // Notify subscribers
+          if (this.subscribers[type]) {
+            this.subscribers[type].forEach(callback => callback(payload));
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      };
+      
+      this.socket.onclose = () => {
+        console.log('WebSocket connection closed');
+        this.reconnect();
+      };
+      
+      this.socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+    } catch (error) {
+      console.error('Error connecting to WebSocket:', error);
+      this.reconnect();
+    }
+  }
+
+  reconnect() {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('Maximum reconnection attempts reached');
+      return;
+    }
     
-    this.ws.onopen = () => {
-      this.reconnectAttempts = 0;
-      this.updatePresence(PresenceStatus.ONLINE);
-    };
-
-    this.ws.onmessage = (event) => {
-      const { type, data } = JSON.parse(event.data);
-      this.handlers.get(type)?.forEach(handler => handler(data));
-    };
-
-    this.ws.onclose = () => {
-      if (this.reconnectAttempts < this.maxReconnectAttempts) {
-        setTimeout(() => {
-          this.reconnectAttempts++;
-          this.connect(token);
-        }, 1000 * Math.pow(2, this.reconnectAttempts));
-      }
-    };
-  }
-
-  updatePresence(status: PresenceStatus, customMessage?: string) {
-    this.send('presence_update', { status, customMessage });
-  }
-
-  subscribeToDocumentChanges(documentId: string, handler: MessageHandler) {
-    this.subscribe(`document_${documentId}`, handler);
-    this.send('document_subscribe', { documentId });
-  }
-
-  sendDocumentUpdate(documentId: string, changes: DocumentChange) {
-    this.send('document_update', { documentId, changes });
-  }
-
-  subscribeToThreadUpdates(threadId: string, handler: MessageHandler) {
-    this.subscribe(`thread_${threadId}`, handler);
-  }
-
-  subscribe(type: string, handler: MessageHandler) {
-    if (!this.handlers.has(type)) {
-      this.handlers.set(type, new Set());
+    this.reconnectAttempts++;
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+    
+    console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts})`);
+    
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
     }
-    this.handlers.get(type)!.add(handler);
-  }
-
-  unsubscribe(type: string, handler: MessageHandler) {
-    this.handlers.get(type)?.delete(handler);
-  }
-
-  send(type: string, data: any) {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type, data }));
-    }
+    
+    this.reconnectTimeout = setTimeout(() => {
+      this.connect();
+    }, delay);
   }
 
   disconnect() {
-    if (this.ws) {
-      this.updatePresence(PresenceStatus.OFFLINE);
-      this.ws.close();
-      this.ws = null;
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
     }
+    
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+  }
+
+  send(type: string, payload: any) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify({ type, payload }));
+    } else {
+      console.warn('WebSocket not connected, message not sent');
+    }
+  }
+
+  subscribe(type: string, callback: Function) {
+    if (!this.subscribers[type]) {
+      this.subscribers[type] = [];
+    }
+    
+    this.subscribers[type].push(callback);
+  }
+
+  unsubscribe(type: string, callback: Function) {
+    if (this.subscribers[type]) {
+      this.subscribers[type] = this.subscribers[type].filter(cb => cb !== callback);
+    }
+  }
+
+  // Helper method for document collaboration
+  subscribeToDocumentChanges(documentId: string, callback: Function) {
+    const channelName = `document_${documentId}`;
+    this.subscribe(channelName, callback);
   }
 }
 
+// Create singleton instance
 export const wsService = new WebSocketService();

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import CoachingSession from '@/components/coaching/CoachingSession';
 import PerformanceMetrics from '@/components/coaching/PerformanceMetrics';
 import { CoachingMetrics } from '@/types/coaching';
@@ -21,7 +20,7 @@ export default function CoachingPage() {
   }, []);
 
   return (
-    <DashboardLayout>
+    <div>
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-gray-900">AI Sales Coaching</h1>
         <p className="mt-2 text-sm text-gray-600">
@@ -37,6 +36,6 @@ export default function CoachingPage() {
           <PerformanceMetrics metrics={metrics} />
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

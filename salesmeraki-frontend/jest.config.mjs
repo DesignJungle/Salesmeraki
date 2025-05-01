@@ -5,8 +5,8 @@ const config = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   transform: {
-    // Use SWC for transforming
-    '^.+\\.(js|jsx|ts|tsx|mjs)$': ['@swc/jest']
+    // Use Babel for transforming
+    '^.+\\.(js|jsx|ts|tsx|mjs)$': ['babel-jest', { presets: ['next/babel'] }]
   },
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json', 'node', 'mjs'],
   testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/'],

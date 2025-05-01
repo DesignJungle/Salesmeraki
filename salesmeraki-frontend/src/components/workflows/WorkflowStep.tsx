@@ -3,10 +3,10 @@
 import { useRef } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { WorkflowStep as WorkflowStepType } from '@/types/workflows';
-import { 
-  EnvelopeIcon, 
-  ClockIcon, 
-  ArrowPathIcon, 
+import {
+  EnvelopeIcon,
+  ClockIcon,
+  ArrowPathIcon,
   CheckCircleIcon,
   ChatBubbleLeftRightIcon,
   PhoneIcon
@@ -24,7 +24,7 @@ export default function WorkflowStep({ step, index, onUpdate, onDelete, onMove }
   const ref = useRef<HTMLDivElement>(null);
 
   const [{ isDragging }, drag] = useDrag({
-    type: 'workflowStep',
+    type: 'WORKFLOW_STEP',
     item: { id: step.id, index },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
@@ -32,7 +32,7 @@ export default function WorkflowStep({ step, index, onUpdate, onDelete, onMove }
   });
 
   const [, drop] = useDrop({
-    accept: 'workflowStep',
+    accept: 'WORKFLOW_STEP',
     hover(item: { id: string; index: number }, monitor) {
       if (!ref.current) {
         return;

@@ -3,10 +3,10 @@ export type WorkflowStepType = 'email' | 'sms' | 'call' | 'task' | 'delay' | 'co
 export interface WorkflowStep {
   id: string;
   type: string;
-  position: number;
-  config: Record<string, any>;
-  name?: string;
+  title: string;
   description?: string;
+  config?: Record<string, any>;
+  position: number;
 }
 
 export interface Workflow {
@@ -18,7 +18,8 @@ export interface Workflow {
   createdAt?: string;
   updatedAt?: string;
   createdBy?: string;
-  teamId?: string;
+  teamMembers?: WorkflowTeamMember[];
+  lastEditedBy?: string;
 }
 
 export interface WorkflowAnalytics {
@@ -114,7 +115,7 @@ export interface WorkflowCollaborationComment {
 
 export interface WorkflowBuilderProps {
   workflow: Workflow | null;
-  onSave: (workflow: Workflow) => Promise<Workflow>;
+  onSave: (workflow: Workflow) => Promise<void>;
   onAuthError?: () => void;
 }
 
@@ -128,4 +129,26 @@ export interface WorkflowCollaborationProps {
 
 export interface WorkflowTemplatesProps {
   onSelectTemplate: (template: WorkflowTemplate) => void;
+}
+
+export interface WorkflowTeamMember {
+  id: string;
+  name: string;
+  role: string;
+  permissions: 'read' | 'write' | 'admin';
+}
+
+export interface WorkflowComment {
+  id: string;
+  content: string;
+  author: string;
+  createdAt: string;
+  workflowId: string;
+}
+
+export interface WorkflowDocument {
+  id: string;
+  content: string;
+  lastEditedBy?: string;
+  lastEditedAt?: string;
 }

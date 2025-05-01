@@ -1,9 +1,9 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
-. "$(dirname -- "$0")/_/husky.sh"
+
 # Check if .env.local is being committed
 if git diff --cached --name-only | grep -q ".env.local"; then
-echo "Error: Attempting to commit .env.local file which contains secrets"
+  echo "Error: Attempting to commit .env.local file which contains secrets"
   echo "Please remove it from the commit with: git reset .env.local"
   exit 1
 fi
